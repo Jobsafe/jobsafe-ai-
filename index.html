@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JobSafe AI</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#1b1f2a;--mute:#5d6577;--line:#e2e5ee;--brand:#2457e6;--ok:#15803d;--warn:#b45309;--bad:#b91c1c;--mark:#fde68a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10131a;--card:#181c26;--ink:#eef0f6;--mute:#a1a9bb;--line:#2a3040;--brand:#6c93ff;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;--mark:#5b4a10}}
+:root[data-theme="dark"]{--bg:#10131a;--card:#181c26;--ink:#eef0f6;--mute:#a1a9bb;--line:#2a3040;--brand:#6c93ff;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;--mark:#5b4a10}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:28px;margin:0}h2{font-size:18px;margin:0 0 8px}h3{font-size:15px;margin:14px 0 6px}
+.sub{color:var(--mute);margin:4px 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+textarea{width:100%;min-height:150px;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;background:var(--bg);color:var(--ink);resize:vertical}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+button{font:inherit;font-weight:600;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:11px 14px;cursor:pointer;min-height:44px}
+button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+button.small{font-weight:500;min-height:36px;padding:6px 10px;font-size:14px}
+button:disabled{opacity:.55;cursor:wait}
+.note{font-size:13px;color:var(--mute)}
+.err{background:color-mix(in srgb,var(--bad) 12%,transparent);border:1px solid var(--bad);color:var(--bad);padding:10px;border-radius:10px;margin-top:10px}
+.meter{height:14px;border-radius:99px;background:var(--line);overflow:hidden;margin:8px 0}
+.meter i{display:block;height:100%;border-radius:99px}
+.badge{display:inline-block;padding:3px 12px;border-radius:99px;font-weight:700;font-size:14px;color:#fff}
+.big{font-size:40px;font-weight:800;line-height:1}
+.pill{display:inline-block;background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:2px 10px;margin:2px 4px 2px 0;font-size:14px}
+.flag{border-left:4px solid var(--bad);background:var(--bg);padding:8px 10px;border-radius:6px;margin:6px 0}
+.flag q{font-style:italic}
+mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 2px}
+.post{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;max-height:260px;overflow:auto;font-size:14px}
+.score{display:flex;align-items:center;gap:14px}
+.ring{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:22px;flex:none}
+.rec{font-size:20px;font-weight:800}
+ul{margin:4px 0;padding-left:20px}
+.hist{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.hist:last-child{border:0}
+.wide{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+<h1>🛡️ JobSafe AI</h1>
+<p class="sub">Check if a job offer is a scam, then see how well your CV matches it. Built for young job seekers.</p>
+
+<div class="card">
+<h2>1. Paste the job post or recruiter message</h2>
+<textarea id="job" placeholder="Paste the job post, email, or WhatsApp message here…"></textarea>
+<div class="row">
+<button class="small" id="sScam">Try sample scam post</button>
+<button class="small" id="sReal">Try sample real post</button>
+</div>
+</div>
+
+<div class="card">
+<h2>2. Paste your CV (optional, for the match score)</h2>
+<textarea id="cv" placeholder="Paste your CV text here…"></textarea>
+<div class="row"><button class="small" id="sCv">Try sample CV</button></div>
+</div>
+
+<div class="row" style="margin:0 0 16px">
+<button class="primary" id="bScam">Check scam risk</button>
+<button class="primary" id="bCv">Match my CV</button>
+<button class="primary" id="bAll">Full safe-job report</button>
+</div>
+<p class="note">AI can make mistakes. This is guidance, not a guarantee. Always verify a company yourself. Your text stays in your browser, except what is sent to the AI for analysis. Nothing is stored on a server.</p>
+<div id="status"></div>
+<div id="out"></div>
+
+<div class="card">
+<h2>Recent checks</h2>
+<div id="hist"></div>
+<div class="row"><button class="small" id="clr">Clear history</button></div>
+</div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const SAMPLES = {
+scam: "URGENT HIRING!!! Work from home, earn Rs 80,000 per month, no experience needed. Data entry job, only 2 hours daily.\nTo confirm your seat, deposit a refundable registration fee of Rs 5,000 via Easypaisa today. Limited seats, offer expires tonight!\nSend your CNIC photo and bank account number on WhatsApp 03XX-XXXXXXX. No interview required, we will contact you only on WhatsApp.",
+real: "Junior Accounts Officer, Green Valley Traders, Peshawar (on-site)\nWe are looking for a BBA/B.Com graduate to support our finance team. Responsibilities: bookkeeping in QuickBooks, bank reconciliation, preparing monthly reports.\nRequirements: degree in Finance or Accounting, basic QuickBooks knowledge, good communication. Salary: Rs 45,000 to 55,000 per month.\nHow to apply: send your CV to hr@greenvalleytraders.example. Shortlisted candidates will be invited to an in-person interview at our office. We never ask for any payment from applicants.",
+cv: "AK\nBBA Finance student, University of Peshawar (graduating 2027)\nSkills: QuickBooks (Intuit certified), bookkeeping basics, Excel, Pashto, Urdu, English\nCertifications: QuickBooks Certification (Intuit), Empathetic Communication\nExperience: 2-month internship at a woollen mill, helped with daily accounts and reports.\nGoal: entry-level accounting or finance role."
+};
+let busy = false, last = {};
+
+
+function setStatus(msg, isErr) { $("status").innerHTML = msg ? `<div class="${isErr ? "err" : "note"}">${esc(msg)}</div>` : ""; }
+function lock(v) { busy = v; ["bScam", "bCv", "bAll"].forEach(i => $(i).disabled = v); }
+
+async function askJson(prompt) {
+  let res;
+  try { res = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt }) }); }
+  catch (e) { throw new Error("Could not reach the server. Check your internet and try again."); }
+  let data = {};
+  try { data = await res.json(); } catch (e) {}
+  if (!res.ok) throw new Error(data.error || "The AI could not finish. Please try again.");
+  return data.result;
+}
+
+function checkInput(text, name, min) {
+  const t = text.trim();
+  if (!t) throw new Error(`Please paste the ${name} first.`);
+  if (t.length < min) throw new Error(`The ${name} is too short to analyse. Please paste more text.`);
+  if (t.length > 8000) throw new Error(`The ${name} is too long (max 8,000 characters). Please shorten it.`);
+  return t;
+}
+
+const SCAM_PROMPT = post => `You are a job-scam analyst helping young job seekers in Pakistan and worldwide. Analyse ONLY the text below. Do not invent facts about the company. If the text has too little information, say so in "notEnough" and keep the score moderate.
+Return ONLY valid JSON, no markdown, with this shape:
+{"score": number 0-100 (100 = surely a scam), "level": "Low"|"Medium"|"High", "notEnough": boolean, "summary": "one short sentence", "redFlags":[{"quote":"EXACT phrase copied from the text","why":"short reason"}], "positives":["short sign that looks legitimate"], "tips":["3 short safety tips specific to this case"]}
+Look for: upfront fees or deposits, WhatsApp-only contact, no interview, unrealistic pay, urgency and pressure, requests for CNIC or bank details, vague company or role, free email domains for a company, bad grammar.
+TEXT:
+"""${post}"""`;
+
+const CV_PROMPT = (job, cv) => `You are a career coach. Compare the CV with the job description. Use ONLY facts in the CV; never invent experience or skills the person does not have.
+Return ONLY valid JSON, no markdown, with this shape:
+{"score": number 0-100, "summary":"one short sentence", "matching":["skills or points that match"], "missing":["important skills or keywords from the job that the CV lacks"], "improvements":["3 to 5 specific, practical changes to the CV for this job"], "rewrite":{"before":"one weak line from the CV","after":"a stronger version using only true facts"}}
+JOB:
+"""${job}"""
+CV:
+"""${cv}"""`;
+
+function colorFor(level) { return level === "High" ? "var(--bad)" : level === "Medium" ? "var(--warn)" : "var(--ok)"; }
+function scoreColor(n) { return n >= 70 ? "var(--ok)" : n >= 45 ? "var(--warn)" : "var(--bad)"; }
+
+function highlight(text, flags) {
+  const lower = text.toLowerCase(), ranges = [];
+  (flags || []).forEach(f => {
+    const q = String(f.quote || "").trim().toLowerCase();
+    if (q.length < 3) return;
+    const i = lower.indexOf(q);
+    if (i >= 0) ranges.push([i, i + q.length]);
+  });
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged = [];
+  ranges.forEach(r => { const l = merged[merged.length - 1]; if (l && r[0] <= l[1]) l[1] = Math.max(l[1], r[1]); else merged.push([...r]); });
+  let out = "", pos = 0;
+  merged.forEach(([a, b]) => { out += esc(text.slice(pos, a)) + "<mark>" + esc(text.slice(a, b)) + "</mark>"; pos = b; });
+  return out + esc(text.slice(pos));
+}
+
+function list(arr) { return arr && arr.length ? "<ul>" + arr.map(x => `<li>${esc(x)}</li>`).join("") + "</ul>" : '<p class="note">None found.</p>'; }
+
+function renderScam(r, post) {
+  const s = Math.max(0, Math.min(100, Math.round(+r.score || 0)));
+  const lvl = ["Low", "Medium", "High"].includes(r.level) ? r.level : (s >= 65 ? "High" : s >= 35 ? "Medium" : "Low");
+  r.score = s; r.level = lvl;
+  return `<div class="card"><h2>🔎 Scam risk</h2>
+<div class="score"><div class="big" style="color:${colorFor(lvl)}">${s}<span style="font-size:18px">/100</span></div><span class="badge" style="background:${colorFor(lvl)}">${lvl} risk</span></div>
+<div class="meter"><i style="width:${s}%;background:${colorFor(lvl)}"></i></div>
+<p>${esc(r.summary)}</p>${r.notEnough ? '<p class="note">The text has limited information, so this result is less certain.</p>' : ""}
+<h3>Red flags</h3>${(r.redFlags || []).length ? r.redFlags.map(f => `<div class="flag"><q>${esc(f.quote)}</q><br><span class="note">${esc(f.why)}</span></div>`).join("") : '<p class="note">No clear red flags found.</p>'}
+<h3>Your post, with red flags highlighted</h3><div class="post">${highlight(post, r.redFlags)}</div>
+<h3>Looks legitimate</h3>${list(r.positives)}
+<h3>Safety tips</h3>${list(r.tips)}</div>`;
+}
+
+function renderCv(r) {
+  const s = Math.max(0, Math.min(100, Math.round(+r.score || 0)));
+  r.score = s;
+  const rw = r.rewrite || {};
+  return `<div class="card"><h2>📄 CV match</h2>
+<div class="score"><div class="ring" style="border:8px solid ${scoreColor(s)}">${s}%</div><p>${esc(r.summary)}</p></div>
+<h3>Matching</h3>${(r.matching || []).map(x => `<span class="pill">✅ ${esc(x)}</span>`).join("") || '<p class="note">None found.</p>'}
+<h3>Missing keywords or skills</h3>${(r.missing || []).map(x => `<span class="pill">➕ ${esc(x)}</span>`).join("") || '<p class="note">None found.</p>'}
+<h3>How to improve your CV</h3>${list(r.improvements)}
+${rw.after ? `<h3>Example rewrite</h3><p class="note">Before:</p><div class="post">${esc(rw.before)}</div><p class="note">After:</p><div class="post">${esc(rw.after)}</div>` : ""}</div>`;
+}
+
+function recommend(scam, cv) {
+  if (!scam) return null;
+  if (scam.level === "High") return { t: "Avoid", c: "var(--bad)", w: "This offer shows strong scam signs. Do not pay money or share personal documents." };
+  if (!cv) return { t: scam.level === "Medium" ? "Check first" : "Looks OK", c: scam.level === "Medium" ? "var(--warn)" : "var(--ok)", w: "Add your CV to get a match score and a full recommendation." };
+  if (scam.level === "Medium") return { t: "Verify, then decide", c: "var(--warn)", w: "Some warning signs exist. Verify the company before you apply." };
+  return cv.score >= 70 ? { t: "Apply", c: "var(--ok)", w: "Low scam risk and a strong CV match." } : { t: "Apply with changes", c: "var(--warn)", w: "Low scam risk, but improve your CV first using the tips above." };
+}
+
+function renderRec(rec) {
+  return `<div class="card" style="border-color:${rec.c}"><h2>✅ Final recommendation</h2><div class="rec" style="color:${rec.c}">${rec.t}</div><p>${esc(rec.w)}</p>
+<div class="row"><button class="small" id="dl">Download report</button></div></div>`;
+}
+
+function show() {
+  let h = "";
+  if (last.scam) h += renderScam(last.scam, last.post);
+  if (last.cv) h += renderCv(last.cv);
+  const rec = recommend(last.scam, last.cv);
+  if (rec) { last.rec = rec; h += renderRec(rec); }
+  $("out").innerHTML = h;
+  const dl = $("dl");
+  if (dl) dl.onclick = download;
+}
+
+async function run(mode) {
+  if (busy) return;
+  setStatus("");
+  try {
+    const post = checkInput($("job").value, "job post", 30);
+    const cvText = (mode === "cv" || mode === "all" || $("cv").value.trim()) && mode !== "scam" ? checkInput($("cv").value, "CV", 30) : "";
+    lock(true);
+    last = { post, scam: mode === "cv" ? null : undefined, cv: null };
+    setStatus("The AI is reading… this can take 10–20 seconds.");
+    const jobs = [];
+    if (mode !== "cv") jobs.push(askJson(SCAM_PROMPT(post)).then(r => { last.scam = r; }));
+    if (mode !== "scam" && cvText) jobs.push(askJson(CV_PROMPT(post, cvText)).then(r => { last.cv = r; }));
+    await Promise.all(jobs);
+    if (last.scam) { renderScam(last.scam, post); }
+    if (last.cv) { renderCv(last.cv); }
+    show();
+    saveHistory(post);
+    setStatus("");
+  } catch (e) {
+    setStatus(e.message, true);
+  } finally { lock(false); }
+}
+
+function download() {
+  const s = last.scam, c = last.cv, r = last.rec;
+  const lines = ["JOBSAFE AI REPORT", new Date().toLocaleString(), "", "Recommendation: " + (r ? r.t : "-"), ""];
+  if (s) { lines.push(`Scam risk: ${s.score}/100 (${s.level})`, s.summary || "", "Red flags:"); (s.redFlags || []).forEach(f => lines.push(` - "${f.quote}": ${f.why}`)); lines.push("Safety tips:"); (s.tips || []).forEach(t => lines.push(" - " + t)); lines.push(""); }
+  if (c) { lines.push(`CV match: ${c.score}%`, c.summary || "", "Missing: " + (c.missing || []).join(", "), "Improvements:"); (c.improvements || []).forEach(t => lines.push(" - " + t)); lines.push(""); }
+  lines.push("AI can make mistakes. This is guidance, not a guarantee. Always verify a company yourself.");
+  const el = document.createElement("a");
+  el.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/plain" }));
+  el.download = "jobsafe-report.txt";
+  document.body.appendChild(el); el.click(); el.remove();
+}
+
+function getHist() { try { return JSON.parse(localStorage.getItem("jobsafe-history") || "[]"); } catch (e) { return []; } }
+function saveHistory(post) {
+  const item = { t: Date.now(), title: post.replace(/\s+/g, " ").slice(0, 60), risk: last.scam ? last.scam.level + " (" + last.scam.score + ")" : "-", match: last.cv ? last.cv.score + "%" : "-", rec: last.rec ? last.rec.t : "-" };
+  try { localStorage.setItem("jobsafe-history", JSON.stringify([item, ...getHist()].slice(0, 10))); } catch (e) { /* storage may be unavailable */ }
+  renderHist();
+}
+function renderHist() {
+  const h = getHist();
+  $("hist").innerHTML = h.length ? h.map(i => `<div class="hist wide"><span>${esc(i.title)}…</span><span>Risk: ${esc(i.risk)} · Match: ${esc(i.match)} · <b>${esc(i.rec)}</b></span></div>`).join("") : '<p class="note">No checks yet. Your last 10 checks appear here, saved only in your browser.</p>';
+}
+
+$("sScam").onclick = () => { $("job").value = SAMPLES.scam; };
+$("sReal").onclick = () => { $("job").value = SAMPLES.real; };
+$("sCv").onclick = () => { $("cv").value = SAMPLES.cv; };
+$("bScam").onclick = () => run("scam");
+$("bCv").onclick = () => run("cv");
+$("bAll").onclick = () => run("all");
+$("clr").onclick = () => { try { localStorage.removeItem("jobsafe-history"); } catch (e) {} renderHist(); };
+renderHist();
+</script>
+</body>
+</html>
