@@ -77,7 +77,11 @@ To run locally, install the Vercel CLI and run `vercel dev` in the project folde
 
 ## Screenshots
 
-_Add 3 screenshots here: (1) scam check result with highlighted red flags, (2) CV match result, (3) final recommendation._
+<img "https://github.com/user-attachments/assets/b994b0f5-19cb-420e-8712-47d72202a078" />
+
+<img "https://github.com/user-attachments/assets/121215a9-950d-43cd-b20c-c5f474a4751d" />
+
+<img "https://github.com/user-attachments/assets/f4a77f6e-dcb6-4866-b4f1-011b08bcca15" />
 
 ## Team Contributions
 
